@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: Formulario Autoevaluacion
  * Plugin URI: https://autoevaluacion.com
@@ -12,13 +13,13 @@
 
 // Cuando el plugin se active se crea la tabla para recoger los datos si no existe
 register_activation_hook(__FILE__, 'Kfp_Aspirante_init');
- 
+
 /**
  * Crea la tabla para recoger los datos del formulario
  *
  * @return void
  */
-function Kfp_Aspirante_init() 
+function Kfp_Aspirante_init()
 {
     global $wpdb; // Este objeto global permite acceder a la base de datos de WP
     // Crea la tabla sólo si no existe
@@ -47,6 +48,15 @@ function Kfp_Aspirante_init()
 // Define el shortcode y lo asocia a una función
 add_shortcode('formulario', 'Kfp_Aspirante_form');
 
+
+ //Carga hoja javascript
+add_action("wp_enqueue_scripts", "dcms_insertar_js");
+
+function dcms_insertar_js(){   
+     wp_register_script('miscript', plugins_url('formulario.js', __FILE__), array('jquery'), '1', true );
+     wp_enqueue_script('miscript');
+ }
+
 /** 
  * Define la función que ejecutará el shortcode
  * De momento sólo pinta un formulario que no hace nada
@@ -57,25 +67,26 @@ function Kfp_Aspirante_form()
 {
     // Carga esta hoja de estilo para poner más bonito el formulario
     wp_enqueue_style('css_aspirante', plugins_url('formulario.css', __FILE__));
-    
+
     global $wpdb; // Este objeto global permite acceder a la base de datos de WP
     // Si viene del formulario  graba en la base de datos
     // Cuidado con el último igual de la condición del if que es doble
-    if ($_POST['nombre'] != ''
-        AND is_email($_POST['correo'])
-        AND $_POST['nivel_html'] != ''
-        AND $_POST['nivel_css'] != ''
-        AND $_POST['nivel_js'] != ''      
-        AND $_POST['aceptacion'] == '1'
-        AND wp_verify_nonce($_POST['aspirante_nonce'], 'graba_aspirante')
+    if (
+        $_POST['nombre'] != ''
+        and is_email($_POST['correo'])
+        and $_POST['nivel_html'] != ''
+        and $_POST['nivel_css'] != ''
+        and $_POST['nivel_js'] != ''
+        and $_POST['aceptacion'] == '1'
+        and wp_verify_nonce($_POST['aspirante_nonce'], 'graba_aspirante')
     ) {
-        $tabla_aspirantes = $wpdb->prefix . 'aspirante'; 
+        $tabla_aspirantes = $wpdb->prefix . 'aspirante';
         $nombre = sanitize_text_field($_POST['nombre']);
         $correo = $_POST['correo'];
-        $nivel_html = (int)$_POST['nivel_html'];
-        $nivel_css = (int)$_POST['nivel_css'];
-        $nivel_js = (int)$_POST['nivel_js'];
-        $aceptacion = (int)$_POST['aceptacion'];
+        $nivel_html = (int) $_POST['nivel_html'];
+        $nivel_css = (int) $_POST['nivel_css'];
+        $nivel_js = (int) $_POST['nivel_js'];
+        $aceptacion = (int) $_POST['aceptacion'];
         $created_at = date('Y-m-d H:i:s');
         $wpdb->insert(
             $tabla_aspirantes,
@@ -97,9 +108,8 @@ function Kfp_Aspirante_form()
     // Cuando termine el formulario lo imprime con la función ob_get_clean
     ob_start();
 ?>
-    <form action="<?php get_the_permalink(); ?>" method="post" id="form_aspirante"
-class="cuestionario">
-<?php wp_nonce_field('graba_aspirante', 'aspirante_nonce'); ?>
+    <form action="<?php get_the_permalink(); ?>" method="post" id="form_aspirante" class="cuestionario">
+        <?php wp_nonce_field('graba_aspirante', 'aspirante_nonce'); ?>
         <div class="form-input">
             <label for="nombre">Nombre</label>
             <input type="text" name="nombre" id="nombre" required>
@@ -141,12 +151,23 @@ class="cuestionario">
         <div class="form-input">
             <label for="aceptacion">La información facilitada se tratará
                 con respeto y admiración.</label>
-            <input type="checkbox" id="aceptacion" name="aceptacion" value="1" required> Entiendo y acepto las condiciones
+            <input type="checkbox" id="aceptacion" name="aceptacion" value="1" required disabled><a id="privacidad" href=""> Entiendo y acepto las condiciones</a>
         </div>
         <div class="form-input">
             <input type="submit" value="Enviar">
         </div>
     </form>
+    <!--
+    <script>
+        window.onload = () => {
+            document.getElementById("privacidad").onclick=(e)=>{
+                e.preventDefault;
+                alert("Aceptando condiciones");
+            }
+           
+        }
+    </script>
+    -->
 <?php
 
     // Devuelve el contenido del buffer de salida
