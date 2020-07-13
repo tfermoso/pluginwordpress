@@ -225,13 +225,38 @@ function Kfp_Aspirante_menu()
  */
 function Kfp_Aspirante_admin()
 {
+    // Carga esta hoja de estilo para poner más bonito el formulario
+    wp_enqueue_style('css_aspirante', plugins_url('formulario.css', __FILE__));
+    
     global $wpdb;
     $tabla_aspirantes = $wpdb->prefix . 'aspirante';
     $consulta = "SELECT * FROM $tabla_aspirantes";
-    if (isset($_POST["nombre"])) {
+    if (isset($_POST["nombre_buscar"])) {
         echo "Recibiendo datos";
-        $nombre = $_POST["nombre"];
+        $nombre = $_POST["nombre_buscar"];
         $consulta="SELECT * FROM $tabla_aspirantes where nombre like '%$nombre%'";
+    }
+    if(isset($_POST["nombre"])){
+        $tabla_aspirantes = $wpdb->prefix . 'aspirante';
+        $nombre = sanitize_text_field($_POST['nombre']);
+        $correo = $_POST['correo'];
+        $nivel_html = (int) $_POST['nivel_html'];
+        $nivel_css = (int) $_POST['nivel_css'];
+        $nivel_js = (int) $_POST['nivel_js'];
+        $created_at = date('Y-m-d H:i:s');
+        $wpdb->insert(
+            $tabla_aspirantes,
+            array(
+                'nombre' => $nombre,
+                'correo' => $correo,
+                'nivel_html' => $nivel_html,
+                'nivel_css' => $nivel_css,
+                'nivel_js' => $nivel_js,
+                'aceptacion' => 1,
+                'ip_origen' => 'admin',
+                'created_at' => $created_at,
+            )
+        );
     }
 
 
@@ -239,20 +264,21 @@ function Kfp_Aspirante_admin()
     echo '<hr>';
     echo '<form action="" method="post">
      <input type="text" ';
-     if (isset($_POST["nombre"])) {
+     if (isset($_POST["nombre_buscar"])) {
          echo "value=".$nombre;
      }
-     echo ' required name="nombre" id="" placeholder="Nombre de usuario">
+     echo ' required name="nombre_buscar" id="" placeholder="Nombre de usuario">
      <input type="submit" value="Buscar">
     </form><br>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th width="30%">Nombre</th><th width="20%">Correo</th>
+    echo '<thead><tr><th width="10%">Nombre</th><th width="20%">Correo</th>
         <th>HTML</th><th>CSS</th><th>JS</th>
-        <th>PHP</th><th>WP</th><th>Total</th></tr></thead>';
+        <th>PHP</th><th>WP</th><th>Total</th><th width="15%">IP Origen</th><th>Op</th></tr></thead>';
     echo '<tbody id="the-list">';
     $aspirantes = $wpdb->get_results($consulta);
     foreach ($aspirantes as $aspirante) {
+        $id=(int) $aspirante->id;
         $nombre = esc_textarea($aspirante->nombre);
         $correo = esc_textarea($aspirante->correo);
         $motivacion = esc_textarea($aspirante->motivacion);
@@ -262,10 +288,80 @@ function Kfp_Aspirante_admin()
         $nivel_php = (int) $aspirante->nivel_php;
         $nivel_wp = (int) $aspirante->nivel_wp;
         $total = $nivel_html + $nivel_css + $nivel_js + $nivel_php + $nivel_wp;
+        $ip_origen=$aspirante->ip_origen;
         echo "<tr><td><a href='#' title='$motivacion'>$nombre</a></td>
             <td>$correo</td><td>$nivel_html</td><td>$nivel_css</td>
             <td>$nivel_js</td><td>$nivel_php</td><td>$nivel_wp</td>
-            <td>$total</td></tr>";
+            <td>$total</td><td>$ip_origen</td><td><a href='?page=kfp_aspirante_menu&id=$id'><span class='dashicons dashicons-trash'></span></a></td></tr>";
     }
     echo '</tbody></table></div>';
+    echo '<hr>';
+
+    echo '<form action="" method="post" id="form_aspirante" class="cuestionario">        
+        <div class="form-input">
+            <label for="nombre">Nombre</label>
+            <input type="text" name="nombre" id="nombre" required>
+        </div>
+        <div class="form-input">
+            <label for="correo">Correo</label>
+            <input type="email" name="correo" id="correo" >
+        </div>
+        <div class="form-input">
+            <label for="nivel_html">¿Cuál es tu nivel de HTML?</label>
+            <input type="radio" name="nivel_html" value="1" > Nada
+            <br><input type="radio" name="nivel_html" value="2" > Estoy
+            aprendiendo
+            <br><input type="radio" name="nivel_html" value="3" > Tengo
+            experiencia
+            <br><input type="radio" name="nivel_html" value="4" > Lo
+            domino al dedillo
+        </div>
+        <div class="form-input">
+            <label for="nivel_css">¿Cuál es tu nivel de CSS?</label>
+            <input type="radio" name="nivel_css" value="1" > Nada
+            <br><input type="radio" name="nivel_css" value="2" > Estoy
+            aprendiendo
+            <br><input type="radio" name="nivel_css" value="3" > Tengo
+            experiencia
+            <br><input type="radio" name="nivel_css" value="4" > Lo
+            domino al dedillo
+        </div>
+        <div class="form-input">
+            <label for="nivel_js">¿Cuál es tu nivel de JavaScript?</label>
+            <input type="radio" name="nivel_js" value="1" > Nada
+            <br><input type="radio" name="nivel_js" value="2" > Estoy
+            aprendiendo
+            <br><input type="radio" name="nivel_js" value="3" > Tengo
+            experiencia
+            <br><input type="radio" name="nivel_js" value="4" > Lo domino
+            al dedillo
+        </div>
+        
+        <div class="form-input">
+            <input type="submit" id="btnFormulario" value="Guardar datos"  title="Es necesario aceptar las condiciones">
+        </div>
+    </form>';
+
+
+}
+
+
+function events_endpoint() {
+    register_rest_route( 'eventos/', 'destacados', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'get_events',
+    ) );
+}
+
+add_action( 'rest_api_init', 'events_endpoint' );
+ 
+function get_events( $request ) {
+    $args  = array(
+        'post_type'  => 'blog'
+        
+    );
+    $query = new WP_Query( array( 'cat' => 1 ) );
+ 
+    return $query->posts;
+    //return "hola mundo";
 }
