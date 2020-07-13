@@ -14,31 +14,19 @@
 function getRealIP()
 {
 
-    if (isset($_SERVER["HTTP_CLIENT_IP"]))
-    {
+    if (isset($_SERVER["HTTP_CLIENT_IP"])) {
         return $_SERVER["HTTP_CLIENT_IP"];
-    }
-    elseif (isset($_SERVER["HTTP_X_FORWARDED_FOR"]))
-    {
+    } elseif (isset($_SERVER["HTTP_X_FORWARDED_FOR"])) {
         return $_SERVER["HTTP_X_FORWARDED_FOR"];
-    }
-    elseif (isset($_SERVER["HTTP_X_FORWARDED"]))
-    {
+    } elseif (isset($_SERVER["HTTP_X_FORWARDED"])) {
         return $_SERVER["HTTP_X_FORWARDED"];
-    }
-    elseif (isset($_SERVER["HTTP_FORWARDED_FOR"]))
-    {
+    } elseif (isset($_SERVER["HTTP_FORWARDED_FOR"])) {
         return $_SERVER["HTTP_FORWARDED_FOR"];
-    }
-    elseif (isset($_SERVER["HTTP_FORWARDED"]))
-    {
+    } elseif (isset($_SERVER["HTTP_FORWARDED"])) {
         return $_SERVER["HTTP_FORWARDED"];
-    }
-    else
-    {
+    } else {
         return $_SERVER["REMOTE_ADDR"];
     }
-
 }
 
 
@@ -81,13 +69,14 @@ function Kfp_Aspirante_init()
 add_shortcode('formulario', 'Kfp_Aspirante_form');
 
 
- //Carga hoja javascript
+//Carga hoja javascript
 add_action("wp_enqueue_scripts", "dcms_insertar_js");
 
-function dcms_insertar_js(){   
-     wp_register_script('miscript', plugins_url('formulario.js', __FILE__), array('jquery'), '1', true );
-     wp_enqueue_script('miscript');
- }
+function dcms_insertar_js()
+{
+    wp_register_script('miscript', plugins_url('formulario.js', __FILE__), array('jquery'), '1', true);
+    wp_enqueue_script('miscript');
+}
 
 /** 
  * Define la función que ejecutará el shortcode
@@ -120,7 +109,7 @@ function Kfp_Aspirante_form()
         $nivel_js = (int) $_POST['nivel_js'];
         $aceptacion = (int) $_POST['aceptacion'];
         $created_at = date('Y-m-d H:i:s');
-        $ip_origen=getRealIP();
+        $ip_origen = getRealIP();
         $wpdb->insert(
             $tabla_aspirantes,
             array(
@@ -185,7 +174,7 @@ function Kfp_Aspirante_form()
         <div class="form-input">
             <label for="aceptacion">La información facilitada se tratará
                 con respeto y admiración.</label>
-            <input type="checkbox" id="aceptacion" name="aceptacion" value="1" required ><a id="privacidad" target="_blank" href="http://www.google.com"> Entiendo y acepto las condiciones</a>
+            <input type="checkbox" id="aceptacion" name="aceptacion" value="1" required><a id="privacidad" target="_blank" href="http://www.google.com"> Entiendo y acepto las condiciones</a>
         </div>
         <div class="form-input">
             <input type="submit" id="btnFormulario" value="Enviar" disabled="true" title="Es necesario aceptar las condiciones">
@@ -206,4 +195,77 @@ function Kfp_Aspirante_form()
 
     // Devuelve el contenido del buffer de salida
     return ob_get_clean();
+}
+
+// El hook "admin_menu" permite agregar un nuevo item al menú de administración
+add_action("admin_menu", "Kfp_Aspirante_menu");
+
+/**
+ * Agrega el menú del plugin al escritorio de WordPress
+ *
+ * @return void
+ */
+function Kfp_Aspirante_menu()
+{
+    add_menu_page(
+        'Formulario Aspirantes',
+        'Datos Recibidos',
+        'manage_options',
+        'kfp_aspirante_menu',
+        'Kfp_Aspirante_admin',
+        'dashicons-editor-paste-word',
+        1
+    );
+}
+
+/**
+ * Crea el contenido del panel de administración para el plugin
+ *
+ * @return void
+ */
+function Kfp_Aspirante_admin()
+{
+    global $wpdb;
+    $tabla_aspirantes = $wpdb->prefix . 'aspirante';
+    $consulta = "SELECT * FROM $tabla_aspirantes";
+    if (isset($_POST["nombre"])) {
+        echo "Recibiendo datos";
+        $nombre = $_POST["nombre"];
+        $consulta="SELECT * FROM $tabla_aspirantes where nombre like '%$nombre%'";
+    }
+
+
+    echo '<div class="wrap"><h1>Lista de aspirantes</h1>';
+    echo '<hr>';
+    echo '<form action="" method="post">
+     <input type="text" ';
+     if (isset($_POST["nombre"])) {
+         echo "value=".$nombre;
+     }
+     echo ' required name="nombre" id="" placeholder="Nombre de usuario">
+     <input type="submit" value="Buscar">
+    </form><br>';
+
+    echo '<table class="wp-list-table widefat fixed striped">';
+    echo '<thead><tr><th width="30%">Nombre</th><th width="20%">Correo</th>
+        <th>HTML</th><th>CSS</th><th>JS</th>
+        <th>PHP</th><th>WP</th><th>Total</th></tr></thead>';
+    echo '<tbody id="the-list">';
+    $aspirantes = $wpdb->get_results($consulta);
+    foreach ($aspirantes as $aspirante) {
+        $nombre = esc_textarea($aspirante->nombre);
+        $correo = esc_textarea($aspirante->correo);
+        $motivacion = esc_textarea($aspirante->motivacion);
+        $nivel_html = (int) $aspirante->nivel_html;
+        $nivel_css = (int) $aspirante->nivel_css;
+        $nivel_js = (int) $aspirante->nivel_js;
+        $nivel_php = (int) $aspirante->nivel_php;
+        $nivel_wp = (int) $aspirante->nivel_wp;
+        $total = $nivel_html + $nivel_css + $nivel_js + $nivel_php + $nivel_wp;
+        echo "<tr><td><a href='#' title='$motivacion'>$nombre</a></td>
+            <td>$correo</td><td>$nivel_html</td><td>$nivel_css</td>
+            <td>$nivel_js</td><td>$nivel_php</td><td>$nivel_wp</td>
+            <td>$total</td></tr>";
+    }
+    echo '</tbody></table></div>';
 }
