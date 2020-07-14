@@ -227,16 +227,16 @@ function Kfp_Aspirante_admin()
 {
     // Carga esta hoja de estilo para poner más bonito el formulario
     wp_enqueue_style('css_aspirante', plugins_url('formulario.css', __FILE__));
-    
+
     global $wpdb;
     $tabla_aspirantes = $wpdb->prefix . 'aspirante';
     $consulta = "SELECT * FROM $tabla_aspirantes";
     if (isset($_POST["nombre_buscar"])) {
         echo "Recibiendo datos";
         $nombre = $_POST["nombre_buscar"];
-        $consulta="SELECT * FROM $tabla_aspirantes where nombre like '%$nombre%'";
+        $consulta = "SELECT * FROM $tabla_aspirantes where nombre like '%$nombre%'";
     }
-    if(isset($_POST["nombre"])){
+    if (isset($_POST["nombre"])) {
         $tabla_aspirantes = $wpdb->prefix . 'aspirante';
         $nombre = sanitize_text_field($_POST['nombre']);
         $correo = $_POST['correo'];
@@ -258,16 +258,22 @@ function Kfp_Aspirante_admin()
             )
         );
     }
-
+    if (isset($_GET["id"])) {
+        $id_aspirante = $_GET["id"];
+        // Using where formatting.
+        $wpdb->delete($tabla_aspirantes, array('ID' => $id_aspirante), array('%d'));
+        //echo "Borrando aspirante id " . $id_aspirante;
+        //exit();
+    }
 
     echo '<div class="wrap"><h1>Lista de aspirantes</h1>';
     echo '<hr>';
     echo '<form action="" method="post">
      <input type="text" ';
-     if (isset($_POST["nombre_buscar"])) {
-         echo "value=".$nombre;
-     }
-     echo ' required name="nombre_buscar" id="" placeholder="Nombre de usuario">
+    if (isset($_POST["nombre_buscar"])) {
+        echo "value=" . $nombre;
+    }
+    echo ' required name="nombre_buscar" id="" placeholder="Nombre de usuario">
      <input type="submit" value="Buscar">
     </form><br>';
 
@@ -278,7 +284,7 @@ function Kfp_Aspirante_admin()
     echo '<tbody id="the-list">';
     $aspirantes = $wpdb->get_results($consulta);
     foreach ($aspirantes as $aspirante) {
-        $id=(int) $aspirante->id;
+        $id = (int) $aspirante->id;
         $nombre = esc_textarea($aspirante->nombre);
         $correo = esc_textarea($aspirante->correo);
         $motivacion = esc_textarea($aspirante->motivacion);
@@ -288,7 +294,7 @@ function Kfp_Aspirante_admin()
         $nivel_php = (int) $aspirante->nivel_php;
         $nivel_wp = (int) $aspirante->nivel_wp;
         $total = $nivel_html + $nivel_css + $nivel_js + $nivel_php + $nivel_wp;
-        $ip_origen=$aspirante->ip_origen;
+        $ip_origen = $aspirante->ip_origen;
         echo "<tr><td><a href='#' title='$motivacion'>$nombre</a></td>
             <td>$correo</td><td>$nivel_html</td><td>$nivel_css</td>
             <td>$nivel_js</td><td>$nivel_php</td><td>$nivel_wp</td>
@@ -341,27 +347,27 @@ function Kfp_Aspirante_admin()
             <input type="submit" id="btnFormulario" value="Guardar datos"  title="Es necesario aceptar las condiciones">
         </div>
     </form>';
-
-
 }
 
 
-function events_endpoint() {
-    register_rest_route( 'eventos/', 'destacados', array(
+function events_endpoint()
+{
+    register_rest_route('eventos/', 'destacados', array(
         'methods'  => WP_REST_Server::READABLE,
         'callback' => 'get_events',
-    ) );
+    ));
 }
 
-add_action( 'rest_api_init', 'events_endpoint' );
- 
-function get_events( $request ) {
+add_action('rest_api_init', 'events_endpoint');
+
+function get_events($request)
+{
     $args  = array(
         'post_type'  => 'blog'
-        
+
     );
-    $query = new WP_Query( array( 'cat' => 1 ) );
- 
+    $query = new WP_Query(array('cat' => 1));
+
     return $query->posts;
     //return "hola mundo";
 }
